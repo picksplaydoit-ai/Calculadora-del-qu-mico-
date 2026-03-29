@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>La Calculadora del Químico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        input, select, textarea, button {
+            font-size: 16px !important; 
+        }
+
+        .excel-table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+        }
+        
+        .excel-table th, .excel-table td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 0;
+        }
+
+        .excel-table input {
+            width: 100%;
+            padding: 14px 8px; 
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+        }
+
+        .tab-active {
+            background-color: #4f46e5;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container { height: 400px; }
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .nav-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: white;
+            border-radius: 1rem;
+            padding: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .nav-scroll-btn {
+            background: #4f46e5;
+            color: white;
+            border-radius: 0.75rem;
+            width: 36px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        
+        .nav-scroll-btn:hover { background: #4338ca; }
+        .nav-scroll-btn:active { transform: scale(0.9); }
+
+        #tab-nav {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            gap: 4px;
+            width: 100%;
+            margin: 0 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-12">
+
+    <div class="max-w-7xl mx-auto px-3 py-4 md:px-6">
+        <header class="mb-6 text-center md:text-left">
+            <h1 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight tracking-tight">La Calculadora del Químico</h1>
+            <p class="text-slate-500 text-xs font-semibold uppercase tracking-widest mt-1 opacity-70 italic">App Multitareas Analítica</p>
+            
+            <div class="mt-6 nav-container border border-slate-200 sticky top-2 z-50">
+                <button onclick="scrollTabs(-180)" class="nav-scroll-btn" id="scrollLeftBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                
+                <nav id="tab-nav" class="scrollbar-hide">
+                    <button onclick="switchTab('basic')" id="btn-tab-basic" class="px-5 py-3 rounded-xl font-bold transition-all tab-active whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Calculadora</button>
+                    <button onclick="switchTab('data')" id="btn-tab-data" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Regresión Curvas</button>
+                    <button onclick="switchTab('interpolation')" id="btn-tab-interp" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Interpolar</button>
+                    <button onclick="switchTab('statistics')" id="btn-tab-stats" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Estadística Básica</button>
+                    <button onclick="switchTab('chromatography')" id="btn-tab-chrom" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Cromatografía</button>
+                    <button onclick="switchTab('solutions')" id="btn-tab-sol" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Soluciones</button>
+                    <button onclick="switchTab('dilutions')" id="btn-tab-dilutions" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">Diluciones</button>
+                    <button onclick="switchTab('lodloq')" id="btn-tab-lodloq" class="px-5 py-3 rounded-xl font-bold transition-all text-slate-400 whitespace-nowrap text-[10px] uppercase tracking-wider flex-shrink-0">LOD / LOQ</button>
+                </nav>
+
+                <button onclick="scrollTabs(180)" class="nav-scroll-btn" id="scrollRightBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- MODULO 0: CALCULADORA BÁSICA -->
+        <main id="tab-basic" class="fade-in max-w-sm mx-auto">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 p-6 space-y-4">
+                <div class="bg-slate-100 rounded-3xl p-6 text-right space-y-1 shadow-inner border border-slate-200">
+                    <div id="calc-history" class="text-xs font-bold text-slate-400 h-4 overflow-hidden truncate italic"></div>
+                    <div id="calc-display" class="text-4xl font-black text-slate-900 tracking-tighter truncate">0</div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="calcClear()" class="col-span-2 p-4 bg-red-50 text-red-600 rounded-2xl font-black text-lg active:scale-95 transition-all text-center">AC</button>
+                    <button onclick="calcOp('/')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xl active:scale-95 transition-all text-center">÷</button>
+                    <button onclick="calcOp('*')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-xl active:scale-95 transition-all text-center">×</button>
+                    <button onclick="calcNum(7)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">7</button>
+                    <button onclick="calcNum(8)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">8</button>
+                    <button onclick="calcNum(9)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">9</button>
+                    <button onclick="calcOp('-')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-3xl active:scale-95 transition-all text-center">−</button>
+                    <button onclick="calcNum(4)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">4</button>
+                    <button onclick="calcNum(5)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">5</button>
+                    <button onclick="calcNum(6)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">6</button>
+                    <button onclick="calcOp('+')" class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-2xl active:scale-95 transition-all text-center">+</button>
+                    <button onclick="calcNum(1)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">1</button>
+                    <button onclick="calcNum(2)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">2</button>
+                    <button onclick="calcNum(3)" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">3</button>
+                    <button onclick="calcResult()" class="row-span-2 p-4 bg-indigo-600 text-white rounded-2xl font-black text-3xl active:scale-95 transition-all shadow-lg text-center">=</button>
+                    <button onclick="calcNum(0)" class="col-span-2 p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">0</button>
+                    <button onclick="calcNum('.')" class="p-4 bg-white border border-slate-200 rounded-2xl font-bold text-2xl active:scale-95 shadow-sm text-center">.</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- MÓDULO 1: REGRESIÓN -->
+        <section id="tab-data" class="hidden fade-in space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            <span>Datos de Curva</span>
+                            <div class="flex gap-2">
+                                <button onclick="addRow()" class="bg-indigo-600 text-white w-9 h-9 rounded-xl flex items-center justify-center shadow-md active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg></button>
+                                <button onclick="clearTable()" class="bg-white border border-slate-200 text-red-500 w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <table class="excel-table text-center">
+                                <thead class="bg-slate-100 text-[9px] font-black text-slate-500 uppercase">
+                                    <tr><th class="w-10 py-3">#</th><th>X</th><th>Y</th><th class="w-10"></th></tr>
+                                </thead>
+                                <tbody id="dataTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-slate-50 text-center border-t border-slate-200">
+                            <button onclick="loadDemoData()" class="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Cargar Datos Ejemplo</button>
+                        </div>
+                    </div>
+
+                    <!-- NOMBRES DE EJES -->
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Personalizar Ejes</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Eje X</label>
+                                <input type="text" id="unitX" oninput="updateChartLabels()" placeholder="Nombre X" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Eje Y</label>
+                                <input type="text" id="unitY" oninput="updateChartLabels()" placeholder="Nombre Y" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-center text-slate-800">
+                        <div class="bg-white p-4 rounded-2xl border-l-4 border-indigo-500 shadow-sm"><span class="text-[8px] font-black text-slate-400 uppercase">R² Det.</span><div id="r2Res" class="text-xl font-black">0.0000</div></div>
+                        <div class="bg-white p-4 rounded-2xl border-l-4 border-blue-500 shadow-sm"><span class="text-[8px] font-black text-slate-400 uppercase">Pearson r</span><div id="rRes" class="text-xl font-black">0.0000</div></div>
+                        <div class="bg-white p-4 rounded-2xl border-l-4 border-amber-500 shadow-sm"><span class="text-[8px] font-black text-slate-400 uppercase">Pendiente (m)</span><div id="slopeRes" class="text-xl font-black">0.0000</div></div>
+                        <div class="bg-white p-4 rounded-2xl border-l-4 border-emerald-500 shadow-sm"><span class="text-[8px] font-black text-slate-400 uppercase">Intersep. (b)</span><div id="interceptRes" class="text-xl font-black">0.0000</div></div>
+                    </div>
+                    <div class="bg-white p-2 rounded-3xl border border-slate-200 chart-container shadow-sm"><canvas id="regressionChart"></canvas></div>
+                    <div id="equationDisplay" class="bg-slate-900 text-white p-4 rounded-2xl text-center font-mono font-bold text-sm tracking-tight shadow-xl">y = 0.0000x + 0.0000</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MÓDULO 2: INTERPOLAR -->
+        <section id="tab-interpolation" class="hidden fade-in space-y-4 text-center">
+            <div id="interpEquationInfo" class="bg-indigo-50 p-4 rounded-2xl font-bold text-indigo-700 border border-indigo-200 text-xs italic shadow-sm italic">Cargar datos en Regresión</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">f(x) → Hallar Y</h3>
+                    <input type="number" id="interpInputX" oninput="calculateXtoY()" class="w-full p-4 bg-slate-50 border rounded-2xl text-3xl font-black text-center text-indigo-600 outline-none" placeholder="Ingresar X">
+                    <div class="bg-indigo-600 p-8 rounded-3xl text-white shadow-lg"><div id="interpResultY" class="text-5xl font-black tracking-tighter">--</div><span class="text-[9px] uppercase font-bold opacity-70">Resultado Eje Y</span></div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono">f⁻¹(y) → Hallar X</h3>
+                    <input type="number" id="interpInputY" oninput="calculateYtoX()" class="w-full p-4 bg-slate-50 border rounded-2xl text-3xl font-black text-center text-amber-600 outline-none" placeholder="Ingresar Y">
+                    <div class="bg-amber-500 p-8 rounded-3xl text-white shadow-lg"><div id="interpResultX" class="text-5xl font-black tracking-tighter">--</div><span class="text-[9px] uppercase font-bold opacity-70">Resultado Eje X</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MÓDULO 3: ESTADÍSTICA BÁSICA -->
+        <section id="tab-statistics" class="hidden fade-in space-y-4">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 flex justify-between items-center bg-slate-50 border-b"><span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Serie Numérica</span><button onclick="addStatRow()" class="bg-indigo-600 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Añadir</button></div>
+                <div class="max-h-64 overflow-y-auto scrollbar-hide"><table class="excel-table text-center"><tbody id="statsTableBody"></tbody></table></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 text-center shadow-sm"><span class="text-[8px] font-bold text-slate-400 uppercase">Media (x̄)</span><div id="statMean" class="text-3xl font-black text-indigo-600">0.00</div></div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-100 text-center shadow-sm"><span class="text-[8px] font-bold text-slate-400 uppercase">Desv. (s)</span><div id="statStdDev" class="text-3xl font-black text-slate-800">0.00</div></div>
+                <div class="col-span-2 bg-slate-900 p-10 rounded-[3rem] text-white text-center shadow-2xl border-t-8 border-indigo-500"><span class="text-[10px] font-bold uppercase opacity-30 tracking-[0.4em] block mb-2 tracking-widest">Coef. Variación (CV%)</span><div id="statCV" class="text-7xl font-black tracking-tighter">0.0%</div></div>
+            </div>
+        </section>
+
+        <!-- MÓDULO 4: CROMATOGRAFÍA -->
+        <section id="tab-chromatography" class="hidden fade-in space-y-4">
+            <div class="flex bg-slate-200/50 p-1 rounded-2xl gap-1 mb-4">
+                <button id="btn-chrom-samples" onclick="switchChromSubTab('samples')" class="flex-1 py-3 rounded-xl font-bold text-[10px] uppercase sub-tab-active shadow-sm">Muestras</button>
+                <button id="btn-chrom-repro" onclick="switchChromSubTab('repro')" class="flex-1 py-3 rounded-xl font-bold text-[10px] uppercase bg-white text-slate-400 shadow-sm">Reprod.</button>
+            </div>
+            <div id="chrom-sub-samples" class="space-y-4">
+                <div class="bg-white p-5 rounded-3xl border grid grid-cols-2 gap-3 shadow-sm">
+                    <input type="number" id="chromSampleAreaStd" oninput="calculateChromSamples()" placeholder="Área Std" class="w-full p-4 bg-slate-50 rounded-xl font-black text-center border-none">
+                    <input type="number" id="chromSampleConcStd" oninput="calculateChromSamples()" placeholder="Conc Std" class="w-full p-4 bg-slate-50 rounded-xl font-black text-center border-none">
+                </div>
+                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="excel-table text-center">
+                        <thead class="bg-slate-50 text-[8px] font-black text-slate-400 uppercase"><tr><th class="w-10 py-3 border-r">#</th><th>Área</th><th>Conc</th><th class="bg-indigo-50 text-indigo-600">% Pureza</th><th class="w-10"></th></tr></thead>
+                        <tbody id="chromSampleTableBody"></tbody>
+                    </table>
+                    <button onclick="addChromSampleRow()" class="w-full py-4 bg-slate-50 text-indigo-600 text-[10px] font-black uppercase border-t active:bg-indigo-100 transition-colors">Añadir Muestra</button>
+                </div>
+            </div>
+            <div id="chrom-sub-repro" class="hidden bg-indigo-600 p-12 rounded-[3rem] text-white text-center shadow-2xl">
+                <div id="chromResult" class="text-7xl font-black tracking-tighter">--</div>
+                <p class="text-[10px] font-black uppercase mt-3 opacity-60 tracking-[0.2em]">Reproducibilidad (%)</p>
+            </div>
+        </section>
+
+        <!-- MÓDULO 5: SOLUCIONES -->
+        <section id="tab-solutions" class="hidden fade-in space-y-6">
+            <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-6 md:p-10 space-y-8">
+                <div class="flex bg-slate-100 p-1.5 rounded-2xl gap-1">
+                    <button id="btn-sol-solid" onclick="setReagentType('solid')" class="flex-1 py-4 rounded-xl text-[11px] font-black transition-all bg-indigo-600 text-white shadow-lg active:scale-95">SÓLIDO</button>
+                    <button id="btn-sol-liquid" onclick="setReagentType('liquid')" class="flex-1 py-4 rounded-xl text-[11px] font-black transition-all text-slate-400 uppercase">LÍQUIDO</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-1 text-center"><label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Peso Molecular</label><input type="number" id="solMW" oninput="calculateSolution()" placeholder="g/mol" class="w-full px-4 py-4 bg-slate-50 border rounded-2xl text-xl font-bold text-center outline-none"></div>
+                    <div class="space-y-1 text-center"><label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pureza (%)</label><input type="number" id="solPurity" oninput="calculateSolution()" placeholder="%" class="w-full px-4 py-4 bg-slate-50 border rounded-2xl text-xl font-bold text-center outline-none"></div>
+                    <div class="space-y-1 text-center"><label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Volumen Final (mL)</label><input type="number" id="solVol" oninput="calculateSolution()" placeholder="mL" class="w-full px-4 py-4 bg-slate-50 border rounded-2xl text-xl font-bold text-center outline-none"></div>
+                    <div class="space-y-1 text-center">
+                        <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest block text-center">Concentración</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="solConc" oninput="calculateSolution()" placeholder="Val" class="col-span-2 px-4 py-4 bg-white border-2 border-indigo-100 rounded-2xl text-xl font-bold text-center outline-none">
+                            <select id="solType" onchange="toggleSolFields(); calculateSolution();" class="bg-slate-200 rounded-2xl font-black text-xs text-center border-none outline-none"><option value="m">M</option><option value="n">N</option></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div id="fieldValence" class="hidden fade-in space-y-1 text-center">
+                        <label class="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em]">Valencia / #H+ / #OH-</label>
+                        <input type="number" id="solValence" oninput="calculateSolution()" placeholder="Equivalentes" class="w-full px-4 py-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-xl font-bold text-center outline-none">
+                    </div>
+                    <div id="fieldDensity" class="hidden fade-in space-y-1 text-center">
+                        <label class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">Densidad (g/mL)</label>
+                        <input type="number" id="solDensity" oninput="calculateSolution()" placeholder="ρ" class="w-full px-4 py-4 bg-blue-50 border-2 border-blue-200 rounded-2xl text-xl font-bold text-center outline-none">
+                    </div>
+                </div>
+                <div class="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-2xl text-center border-4 border-indigo-400/30">
+                    <span class="text-[11px] font-black uppercase opacity-50 tracking-[0.5em] mb-2 block italic tracking-widest">Carga Necesaria</span>
+                    <div id="solResultVal" class="text-7xl font-black tracking-tighter">--</div>
+                    <div id="solResultUnit" class="text-[10px] font-black uppercase opacity-80 mt-2 tracking-widest italic tracking-widest">Ingrese parámetros</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- OTROS MODULOS (DILUCIONES & LOD/LOQ) -->
+        <section id="tab-dilutions" class="hidden fade-in space-y-4 text-center">
+            <div class="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">C₁ (Stock)</label><input type="number" id="dilutionC1" oninput="calculateDilution()" class="w-full p-5 bg-slate-50 rounded-2xl font-black text-2xl text-center border outline-none"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">C₂ (Deseada)</label><input type="number" id="dilutionC2" oninput="calculateDilution()" class="w-full p-5 bg-slate-50 rounded-2xl font-black text-2xl text-center border outline-none"></div>
+                    <div class="col-span-2"><label class="text-[10px] font-black text-slate-400 uppercase">V₂ (Volumen Final)</label><input type="number" id="dilutionV2" oninput="calculateDilution()" class="w-full p-5 bg-slate-50 rounded-2xl font-black text-2xl text-center border outline-none"></div>
+                </div>
+                <div class="bg-slate-900 rounded-[3rem] p-12 text-white text-center shadow-2xl">
+                    <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.3em] block mb-3 italic">Tomar Alícuota (V₁)</span>
+                    <div id="dilutionV1Result" class="text-7xl font-black tracking-tighter">--</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-lodloq" class="hidden fade-in space-y-4">
+            <div class="grid grid-cols-1 gap-4 text-center">
+                <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 grid grid-cols-1 gap-5 shadow-sm">
+                    <input type="number" id="lodSigma" oninput="calculateLODLOQ()" placeholder="Ruido Blanco (σ)" class="w-full p-5 bg-slate-50 rounded-2xl font-black text-2xl border text-center outline-none">
+                    <input type="number" id="lodSlope" oninput="calculateLODLOQ()" placeholder="Pendiente (m)" class="w-full p-5 bg-slate-50 rounded-2xl font-black text-2xl border text-center outline-none">
+                </div>
+                <div class="bg-indigo-600 p-10 rounded-[3rem] text-white shadow-xl border-b-8 border-indigo-700 active:scale-95 transition-all">
+                    <span class="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1 italic">LOD (Detección)</span>
+                    <div id="lodResultVal" class="text-6xl font-black tracking-tighter">--</div>
+                </div>
+                <div class="bg-white p-10 rounded-[3rem] text-indigo-600 border-4 border-indigo-100 shadow-lg active:scale-95 transition-all">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">LOQ (Cuantificación)</span>
+                    <div id="loqResultVal" class="text-6xl font-black tracking-tighter">--</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- NAVEGACIÓN CON FLECHAS ---
+        const nav = document.getElementById('tab-nav');
+        function scrollTabs(val) {
+            nav.scrollBy({ left: val, behavior: 'smooth' });
+        }
+
+        // --- LÓGICA CALCULADORA BÁSICA ---
+        let calcExpr = "";
+        function calcNum(n) { 
+            if(n === '.' && document.getElementById('calc-display').innerText.includes('.')) return;
+            calcExpr += n; updateCalcUI(); 
+        }
+        function calcOp(op) { 
+            if(calcExpr === "" && op !== '-') return;
+            calcExpr += " " + op + " "; updateCalcUI(); 
+        }
+        function calcClear() { calcExpr = ""; document.getElementById('calc-history').innerText = ""; updateCalcUI(); }
+        function calcResult() {
+            try {
+                let res = eval(calcExpr.replace('×', '*').replace('÷', '/'));
+                document.getElementById('calc-history').innerText = calcExpr + " =";
+                calcExpr = Number.isInteger(res) ? res.toString() : res.toFixed(4);
+                updateCalcUI();
+            } catch(e) { document.getElementById('calc-display').innerText = "ERR"; calcExpr = ""; }
+        }
+        function updateCalcUI() { document.getElementById('calc-display').innerText = calcExpr || "0"; }
+
+        // --- GESTION APP ---
+        let regModel = { m: 0, b: 0, r: 0, r2: 0, hasData: false };
+        let regRows = 0; let statRows = 0; let chromSampleRows = 0;
+        let chartInstance = null; let currentReagentType = 'solid';
+
+        window.onload = () => {
+            for(let i=0; i<5; i++) addRow();
+            for(let i=0; i<5; i++) addStatRow();
+            for(let i=0; i<3; i++) addChromSampleRow();
+            initChart();
+        };
+
+        function switchTab(tab) {
+            const list = ['tab-basic', 'tab-data', 'tab-interpolation', 'tab-statistics', 'tab-chromatography', 'tab-solutions', 'tab-dilutions', 'tab-lodloq'];
+            const btns = ['btn-tab-basic', 'btn-tab-data', 'btn-tab-interp', 'btn-tab-stats', 'btn-tab-chrom', 'btn-tab-sol', 'btn-tab-dilutions', 'btn-tab-lodloq'];
+            list.forEach(t => document.getElementById(t).classList.add('hidden'));
+            btns.forEach(b => { document.getElementById(b).classList.remove('tab-active'); document.getElementById(b).classList.add('text-slate-400'); });
+            
+            const mapping = { basic: 'tab-basic', data: 'tab-data', interpolation: 'tab-interpolation', statistics: 'tab-statistics', chromatography: 'tab-chromatography', solutions: 'tab-solutions', dilutions: 'tab-dilutions', lodloq: 'tab-lodloq' };
+            const btnMapping = { basic: 'btn-tab-basic', data: 'btn-tab-data', interpolation: 'btn-tab-interp', statistics: 'btn-tab-stats', chromatography: 'btn-tab-chrom', solutions: 'btn-tab-sol', dilutions: 'btn-tab-dilutions', lodloq: 'btn-tab-lodloq' };
+            
+            document.getElementById(mapping[tab]).classList.remove('hidden');
+            document.getElementById(btnMapping[tab]).classList.add('tab-active');
+            document.getElementById(btnMapping[tab]).classList.remove('text-slate-400');
+            if(tab === 'interpolation') syncInterpolation();
+        }
+
+        // --- SOLUCIONES ---
+        function setReagentType(t) {
+            currentReagentType = t;
+            const bS = document.getElementById('btn-sol-solid'), bL = document.getElementById('btn-sol-liquid');
+            if(t === 'solid') { bS.className = 'flex-1 py-4 rounded-xl text-[11px] font-black transition-all bg-indigo-600 text-white shadow-lg'; bL.className = 'flex-1 py-4 rounded-xl text-[11px] font-black transition-all text-slate-400'; }
+            else { bL.className = 'flex-1 py-4 rounded-xl text-[11px] font-black transition-all bg-indigo-600 text-white shadow-lg'; bS.className = 'flex-1 py-4 rounded-xl text-[11px] font-black transition-all text-slate-400'; }
+            toggleSolFields(); calculateSolution();
+        }
+        function toggleSolFields() {
+            const isN = document.getElementById('solType').value === 'n';
+            document.getElementById('fieldValence').classList.toggle('hidden', !isN);
+            document.getElementById('fieldDensity').classList.toggle('hidden', currentReagentType !== 'liquid');
+        }
+        function calculateSolution() {
+            const mw = parseFloat(document.getElementById('solMW').value), pur = parseFloat(document.getElementById('solPurity').value), vol = parseFloat(document.getElementById('solVol').value), con = parseFloat(document.getElementById('solConc').value);
+            const resV = document.getElementById('solResultVal'), resU = document.getElementById('solResultUnit');
+            if(isNaN(mw) || isNaN(pur) || isNaN(vol) || isNaN(con) || pur <= 0) { resV.innerText = "--"; resU.innerText = "Parámetros Incompletos"; return; }
+            let gp = (document.getElementById('solType').value === 'm') ? con * (vol/1000) * mw : con * (vol/1000) * (mw / (parseFloat(document.getElementById('solValence').value)||1));
+            const tm = gp / (pur/100);
+            if(currentReagentType === 'solid') { resV.innerText = tm.toFixed(4); resU.innerText = "GRAMOS A PESAR (g)"; }
+            else {
+                const den = parseFloat(document.getElementById('solDensity').value);
+                if(isNaN(den) || den <= 0) { resV.innerText = "??"; resU.innerText = "Ingrese Densidad"; return; }
+                resV.innerText = (tm/den).toFixed(4); resU.innerText = "MILILITROS A MEDIR (mL)";
+            }
+        }
+
+        // --- REGRESION ---
+        function addRow(vX = '', vY = '') {
+            regRows++; const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="text-center text-[10px] font-mono bg-slate-50 border-r border-slate-200 text-slate-400">${regRows}</td><td><input type="number" step="any" class="reg-x-input" value="${vX}" oninput="debouncedCalculate()"></td><td><input type="number" step="any" class="reg-y-input" value="${vY}" oninput="debouncedCalculate()"></td><td class="text-center"><button onclick="this.closest('tr').remove(); calculateRegression();" class="text-red-400 active:text-red-700 px-2 font-black transition-all">×</button></td>`;
+            document.getElementById('dataTableBody').appendChild(tr);
+        }
+        function clearTable() { document.getElementById('dataTableBody').innerHTML = ''; regRows = 0; for(let i=0; i<5; i++) addRow(); calculateRegression(); }
+        let rT = null; function debouncedCalculate() { clearTimeout(rT); rT = setTimeout(calculateRegression, 300); }
+        function calculateRegression() {
+            const xs = Array.from(document.querySelectorAll('.reg-x-input')).map(i => i.value).filter(v => v !== "").map(Number);
+            const ys = Array.from(document.querySelectorAll('.reg-y-input')).map(i => i.value).filter(v => v !== "").map(Number);
+            if(xs.length < 2 || xs.length !== ys.length) { regModel.hasData = false; return; }
+            const n = xs.length; let sX = 0, sY = 0, sXY = 0, sXX = 0, sYY = 0;
+            for(let i=0; i<n; i++) { sX += xs[i]; sY += ys[i]; sXY += xs[i]*ys[i]; sXX += xs[i]*xs[i]; sYY += ys[i]*ys[i]; }
+            const den = (n * sXX - sX * sX); if(den === 0) return;
+            const m = (n * sXY - sX * sY) / den; const b = (sY - m * sX) / n;
+            const rN = (n * sXY - sX * sY); const rD = Math.sqrt((n * sXX - sX * sX) * (n * sYY - sY * sY));
+            const r = rD !== 0 ? rN / rD : 0;
+            regModel = { m, b, r, r2: r * r, hasData: true };
+            updateRegressionUI(xs, ys);
+        }
+
+        function updateRegressionUI(xs, ys) {
+            const { m, b, r, r2 } = regModel; const sign = b >= 0 ? '+' : '-';
+            document.getElementById('equationDisplay').innerText = `y = ${m.toFixed(4)}x ${sign} ${Math.abs(b).toFixed(4)}`;
+            document.getElementById('slopeRes').innerText = m.toFixed(4);
+            document.getElementById('interceptRes').innerText = b.toFixed(4);
+            document.getElementById('rRes').innerText = r.toFixed(4);
+            document.getElementById('r2Res').innerText = r2.toFixed(4);
+            updateChart(xs, ys, m, b);
+        }
+
+        function updateChartLabels() {
+            if(!chartInstance) return;
+            const ux = document.getElementById('unitX').value || 'Variable X';
+            const uy = document.getElementById('unitY').value || 'Variable Y';
+            chartInstance.options.scales.x.title = { display: true, text: ux, font: { weight: 'bold', size: 10 } };
+            chartInstance.options.scales.y.title = { display: true, text: uy, font: { weight: 'bold', size: 10 } };
+            chartInstance.update();
+        }
+
+        // --- SOPORTE OTROS ---
+        function calculateXtoY() { const v = parseFloat(document.getElementById('interpInputX').value); if(!isNaN(v) && regModel.hasData) document.getElementById('interpResultY').innerText = (regModel.m * v + regModel.b).toFixed(4); }
+        function calculateYtoX() { const v = parseFloat(document.getElementById('interpInputY').value); if(!isNaN(v) && regModel.hasData && regModel.m !== 0) document.getElementById('interpResultX').innerText = ((v - regModel.b)/regModel.m).toFixed(4); }
+        function syncInterpolation() { if(regModel.hasData) document.getElementById('interpEquationInfo').innerText = `CURVA ACTUAL: y = ${regModel.m.toFixed(4)}x ${regModel.b >= 0 ? '+' : '-'} ${Math.abs(regModel.b).toFixed(4)}`; }
+        function calculateDilution() { const c1 = parseFloat(document.getElementById('dilutionC1').value), c2 = parseFloat(document.getElementById('dilutionC2').value), v2 = parseFloat(document.getElementById('dilutionV2').value); if(!isNaN(c1) && !isNaN(c2) && !isNaN(v2) && c1 > 0) document.getElementById('dilutionV1Result').innerText = ((c2 * v2)/c1).toFixed(3); }
+        function calculateLODLOQ() { const s = parseFloat(document.getElementById('lodSigma').value), m = parseFloat(document.getElementById('lodSlope').value); if(!isNaN(s) && !isNaN(m) && m !== 0) { document.getElementById('lodResultVal').innerText = (3.3 * s / m).toFixed(4); document.getElementById('loqResultVal').innerText = (10 * s / m).toFixed(4); } }
+        function switchChromSubTab(s) { document.getElementById('chrom-sub-samples').classList.toggle('hidden', s !== 'samples'); document.getElementById('chrom-sub-repro').classList.toggle('hidden', s !== 'repro'); }
+        function addChromSampleRow() { const tbody = document.getElementById('chromSampleTableBody'); const tr = document.createElement('tr'); tr.innerHTML = `<td class="text-center text-[10px] font-mono bg-slate-50 border-r border-slate-200">?</td><td><input type="number" step="any" class="chrom-sample-area" oninput="calculateChromSamples()"></td><td><input type="number" step="any" class="chrom-sample-conc" oninput="calculateChromSamples()"></td><td class="bg-indigo-50/50 text-center text-xs font-bold text-indigo-700 chrom-purity-result">--</td><td class="text-center"><button onclick="this.closest('tr').remove();" class="text-slate-300">×</button></td>`; tbody.appendChild(tr); }
+        function calculateChromSamples() { const aS = parseFloat(document.getElementById('chromSampleAreaStd').value), cS = parseFloat(document.getElementById('chromSampleConcStd').value); document.querySelectorAll('#chromSampleTableBody tr').forEach(r => { const aM = parseFloat(r.querySelector('.chrom-sample-area').value), cM = parseFloat(r.querySelector('.chrom-sample-conc').value), res = r.querySelector('.chrom-purity-result'); if(!isNaN(aS) && !isNaN(cS) && !isNaN(aM) && !isNaN(cM) && aS !== 0 && cM !== 0) res.innerText = ((aM/aS)*(cS/cM)*100).toFixed(2)+"%"; }); }
+        function addStatRow(v = '') { statRows++; const tr = document.createElement('tr'); tr.innerHTML = `<td class="text-center text-[9px] font-mono bg-slate-50 border-r w-12 border-slate-200 text-slate-400">${statRows}</td><td><input type="number" step="any" class="stat-input w-full" value="${v}" oninput="calculateStats()"></td><td class="w-8 text-center border-slate-200"><button onclick="this.closest('tr').remove(); calculateStats();" class="text-slate-300">×</button></td>`; document.getElementById('statsTableBody').appendChild(tr); }
+        function calculateStats() { const vs = Array.from(document.querySelectorAll('.stat-input')).map(i => i.value).filter(v => v !== "").map(Number); if(vs.length === 0) return; const m = vs.reduce((a, b) => a + b, 0) / vs.length; document.getElementById('statMean').innerText = m.toFixed(2); let s = 0; if(vs.length > 1) s = Math.sqrt(vs.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (vs.length - 1)); document.getElementById('statStdDev').innerText = s.toFixed(3); document.getElementById('statCV').innerText = (m!==0 ? (s/Math.abs(m)*100).toFixed(1)+"%" : "0.0%"); }
+        function initChart() { const ctx = document.getElementById('regressionChart').getContext('2d'); chartInstance = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: 'Puntos', data: [], backgroundColor: '#6366f1', pointRadius: 6 }, { label: 'Línea', data: [], type: 'line', borderColor: '#f59e0b', borderWidth: 2, fill: false, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Variable X', font: { size: 10, weight: 'bold' } }, grid: { color: '#f1f5f9' } }, y: { title: { display: true, text: 'Variable Y', font: { size: 10, weight: 'bold' } }, grid: { color: '#f1f5f9' } } } } }); }
+        function updateChart(xs, ys, m, b) { const scatter = xs.map((x, i) => ({ x, y: ys[i] })); const minX = Math.min(...xs), maxX = Math.max(...xs), p = (maxX - minX) * 0.1 || 1; const line = [{ x: minX - p, y: m*(minX-p)+b }, { x: maxX + p, y: m*(maxX+p)+b }]; chartInstance.data.datasets[0].data = scatter; chartInstance.data.datasets[1].data = line; chartInstance.update(); }
+        function loadDemoData() { document.getElementById('dataTableBody').innerHTML = ''; regRows = 0; [[1, 10.5], [2, 21.2], [3, 30.8], [4, 41.5], [5, 52.3]].forEach(p => addRow(p[0], p[1])); calculateRegression(); }
+    </script>
+</body>
+</html>
